@@ -468,7 +468,7 @@ async function fetchAC(query) {
   const url = 'https://api.geoapify.com/v1/geocode/autocomplete' +
     '?text=' + encodeURIComponent(query) +
     '&apiKey=' + GEOKEY +
-    '&limit=5&lang=en&filter=countrycode:us&bias=proximity:-76.6413,39.0458';
+    '&limit=5&lang=en&filter=countrycode:us&bias=proximity:-75.5994,38.3607';
   try {
     const res = await fetch(url);
     if (!res.ok) throw new Error('HTTP ' + res.status);
