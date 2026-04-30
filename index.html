@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>MyTrips</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0a0f;
+  --surface: #13131a;
+  --surface2: #1c1c27;
+  --border: #2a2a3a;
+  --accent: #f0c040;
+  --accent2: #e07b30;
+  --text: #f0efe8;
+  --muted: #7a798a;
+  --green: #3ecf8e;
+  --red: #f06060;
+  --r: 16px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; max-width: 480px; margin: 0 auto; padding-bottom: 40px; }
+
+.header { background: linear-gradient(135deg,#1a1a28,#0f0f18); border-bottom: 1px solid var(--border); padding: 20px 20px 14px; position: sticky; top: 0; z-index: 100; }
+.header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+.logo { font-family:'Syne',sans-serif; font-size:22px; font-weight:800; }
+.logo span { color: var(--accent); }
+.gas-badge { display:flex; align-items:center; gap:6px; background:var(--surface2); border:1px solid var(--border); border-radius:20px; padding:5px 12px; font-size:12px; color:var(--muted); cursor:pointer; transition:all .2s; }
+.gas-badge:hover { border-color:var(--accent); color:var(--accent); }
+.gas-badge .price { color:var(--accent); font-weight:600; font-size:13px; }
+.subtitle { font-size:12px; color:var(--muted); }
+
+.tabs { display:flex; background:var(--surface); border-bottom:1px solid var(--border); }
+.tab { flex:1; padding:14px 8px; text-align:center; font-size:13px; font-weight:500; color:var(--muted); cursor:pointer; border-bottom:2px solid transparent; transition:all .2s; font-family:'Syne',sans-serif; }
+.tab.active { color:var(--accent); border-bottom-color:var(--accent); }
+
+.page { display:none; padding:20px; }
+.page.active { display:block; }
+
+.card { background:var(--surface); border:1px solid var(--border); border-radius:var(--r); padding:18px; margin-bottom:14px; }
+.card-title { font-family:'Syne',sans-serif; font-size:13px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:14px; }
+
+.route-builder { position:relative; }
+.route-line { position:absolute; left:18px; top:28px; bottom:28px; width:2px; background:linear-gradient(to bottom,var(--green),var(--accent),var(--red)); z-index:0; }
+.stop-row { display:flex; align-items:center; gap:10px; margin-bottom:8px; position:relative; z-index:1; }
+.stop-dot { width:14px; height:14px; border-radius:50%; flex-shrink:0; border:2px solid var(--bg); }
+.stop-dot.origin { background:var(--green); box-shadow:0 0 8px var(--green); }
+.stop-dot.waypoint { background:var(--accent); box-shadow:0 0 8px var(--accent); }
+.stop-dot.destination { background:var(--red); box-shadow:0 0 8px var(--red); }
+
+.ac-wrap { flex:1; position:relative; }
+.stop-input { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:10px 36px 10px 12px; color:var(--text); font-size:14px; font-family:'DM Sans',sans-serif; outline:none; transition:border-color .2s; }
+.stop-input:focus { border-color:var(--accent); }
+.stop-input::placeholder { color:var(--muted); }
+.remove-btn { position:absolute; right:8px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--muted); cursor:pointer; font-size:16px; padding:4px; line-height:1; }
+.remove-btn:hover { color:var(--red); }
+
+.ac-dropdown { position:absolute; top:calc(100% + 4px); left:0; right:0; background:#1e1e2e; border:1px solid var(--accent); border-radius:12px; overflow:hidden; z-index:999; box-shadow:0 8px 32px rgba(0,0,0,.6); display:none; }
+.ac-dropdown.open { display:block; }
+.ac-item { display:flex; align-items:flex-start; gap:10px; padding:11px 14px; cursor:pointer; border-bottom:1px solid var(--border); transition:background .15s; }
+.ac-item:last-child { border-bottom:none; }
+.ac-item:hover, .ac-item.sel { background:#2a2a3f; }
+.ac-icon { font-size:14px; flex-shrink:0; margin-top:1px; color:var(--accent); }
+.ac-texts { flex:1; min-width:0; }
+.ac-main { font-size:13px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.ac-sub { font-size:11px; color:var(--muted); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.ac-msg { padding:12px 14px; font-size:12px; color:var(--muted); display:flex; align-items:center; gap:8px; justify-content:center; }
+
+.add-stop-btn { display:flex; align-items:center; gap:8px; background:none; border:1px dashed var(--border); border-radius:10px; padding:9px 14px; color:var(--muted); font-size:13px; cursor:pointer; width:100%; margin-top:4px; transition:all .2s; font-family:'DM Sans',sans-serif; }
+.add-stop-btn:hover { border-color:var(--accent); color:var(--accent); }
+
+.grid2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.inp-group label { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.8px; display:block; margin-bottom:6px; font-weight:600; }
+.inp { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:10px 12px; color:var(--text); font-size:14px; font-family:'DM Sans',sans-serif; outline:none; transition:border-color .2s; }
+.inp:focus { border-color:var(--accent); }
+input[type=range] { width:100%; height:4px; accent-color:var(--accent); cursor:pointer; margin-top:8px; }
+.slider-val { font-size:20px; font-weight:700; font-family:'Syne',sans-serif; color:var(--accent); }
+.slider-val span { font-size:13px; font-weight:400; color:var(--muted); }
+
+.peak-card { border-radius:var(--r); padding:14px 16px; margin-bottom:14px; border:1px solid var(--border); background:var(--surface); transition:border-color .3s,background .3s; }
+.peak-card.on { background:#1a150a; border-color:var(--accent2); }
+.peak-header { display:flex; justify-content:space-between; align-items:center; }
+.peak-lbl { display:flex; align-items:center; gap:10px; }
+.peak-icon { font-size:22px; width:36px; height:36px; background:var(--surface2); border-radius:10px; display:flex; align-items:center; justify-content:center; }
+.peak-card.on .peak-icon { background:#2a1a08; }
+.peak-title { font-size:14px; font-weight:600; font-family:'Syne',sans-serif; }
+.peak-sub { font-size:11px; color:var(--muted); margin-top:2px; }
+.peak-sub.now { color:var(--accent2); }
+.peak-badge { display:inline-flex; align-items:center; background:#2a1a08; border:1px solid var(--accent2); border-radius:6px; padding:2px 7px; font-size:11px; color:var(--accent2); font-weight:600; margin-left:6px; animation:blink 1.5s infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.5} }
+.peak-details { margin-top:14px; padding-top:12px; border-top:1px solid var(--border); display:none; }
+.peak-card.on .peak-details { display:block; }
+.peak-mult-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+.peak-mult-val { font-family:'Syne',sans-serif; font-size:24px; font-weight:800; color:var(--accent2); }
+.peak-time-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px; }
+.peak-time-lbl { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.7px; margin-bottom:4px; font-weight:600; }
+
+.toggle { width:44px; height:24px; background:var(--border); border-radius:12px; position:relative; cursor:pointer; transition:background .2s; flex-shrink:0; border:none; }
+.toggle.on { background:var(--accent); }
+.toggle::after { content:''; position:absolute; width:18px; height:18px; background:#fff; border-radius:50%; top:3px; left:3px; transition:left .2s; }
+.toggle.on::after { left:23px; }
+
+.btn-calc { width:100%; background:linear-gradient(135deg,var(--accent),var(--accent2)); border:none; border-radius:14px; padding:16px; color:#0a0a0f; font-size:15px; font-weight:700; font-family:'Syne',sans-serif; cursor:pointer; letter-spacing:.3px; transition:all .2s; box-shadow:0 4px 24px rgba(240,192,64,.25); }
+.btn-calc:hover { transform:translateY(-1px); box-shadow:0 6px 30px rgba(240,192,64,.35); }
+.btn-calc:disabled { opacity:.4; cursor:not-allowed; transform:none; box-shadow:none; }
+
+.result-card { background:linear-gradient(135deg,#1a1f14,#141a10); border:1px solid #2a3a20; border-radius:var(--r); padding:20px; margin-top:14px; display:none; animation:slideUp .3s ease; }
+.result-card.show { display:block; }
+@keyframes slideUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+.result-main { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px; }
+.result-price { font-family:'Syne',sans-serif; font-size:40px; font-weight:800; color:var(--green); line-height:1; }
+.result-price sup { font-size:18px; vertical-align:super; }
+.result-meta { text-align:right; }
+.result-dist { font-size:20px; font-weight:700; font-family:'Syne',sans-serif; }
+.result-time { font-size:12px; color:var(--muted); margin-top:2px; }
+.result-breakdown { border-top:1px solid #2a3a20; padding-top:14px; display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.bd-item { font-size:12px; color:var(--muted); }
+.bd-item strong { display:block; color:var(--text); font-size:13px; margin-top:1px; }
+.route-stops { border-top:1px solid #2a3a20; padding-top:12px; margin-top:12px; }
+.route-stop-item { display:flex; align-items:center; gap:8px; padding:5px 0; font-size:12px; color:var(--muted); }
+.route-stop-item .dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+.peak-result-line { display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-top:1px solid #2a3a20; margin-top:8px; font-size:12px; color:var(--muted); }
+.peak-result-line strong { color:var(--accent2); font-size:13px; }
+.result-actions { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:14px; }
+.btn-act { background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:11px; color:var(--text); font-size:12px; font-family:'Syne',sans-serif; font-weight:600; cursor:pointer; transition:all .2s; text-align:center; }
+.btn-act:hover { border-color:var(--accent); color:var(--accent); }
+.btn-act.green { border-color:var(--green); color:var(--green); }
+
+.history-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
+.history-title { font-family:'Syne',sans-serif; font-size:20px; font-weight:800; }
+.stats-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:20px; }
+.stat-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px 12px; text-align:center; }
+.stat-val { font-family:'Syne',sans-serif; font-size:18px; font-weight:800; color:var(--accent); }
+.stat-label { font-size:10px; color:var(--muted); margin-top:2px; text-transform:uppercase; letter-spacing:.5px; }
+.history-item { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:14px; margin-bottom:10px; position:relative; overflow:hidden; }
+.history-item::before { content:''; position:absolute; left:0;top:0;bottom:0; width:3px; background:linear-gradient(to bottom,var(--green),var(--red)); border-radius:3px 0 0 3px; }
+.h-top { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px; }
+.h-route { font-size:14px; font-weight:500; flex:1; margin-right:10px; }
+.h-price { font-family:'Syne',sans-serif; font-size:16px; font-weight:700; color:var(--green); }
+.h-meta { display:flex; gap:8px; flex-wrap:wrap; }
+.chip { font-size:11px; color:var(--muted); background:var(--surface2); padding:3px 8px; border-radius:20px; }
+.empty-state { text-align:center; padding:48px 20px; color:var(--muted); font-size:14px; }
+.empty-icon { font-size:48px; margin-bottom:12px; }
+
+.cfg-section { margin-bottom:20px; }
+.cfg-title { font-family:'Syne',sans-serif; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:10px; }
+.preset-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.preset-btn { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:12px; cursor:pointer; text-align:left; transition:all .2s; color:var(--text); }
+.preset-btn:hover, .preset-btn.sel { border-color:var(--accent); background:#1a1a15; }
+.preset-name { font-size:13px; font-weight:600; font-family:'Syne',sans-serif; }
+.preset-desc { font-size:11px; color:var(--muted); margin-top:2px; }
+
+.modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.7); display:flex; align-items:flex-end; justify-content:center; z-index:200; backdrop-filter:blur(4px); opacity:0; pointer-events:none; transition:opacity .2s; }
+.modal-overlay.open { opacity:1; pointer-events:all; }
+.modal { background:var(--surface); border-radius:20px 20px 0 0; border:1px solid var(--border); padding:24px 20px 40px; width:100%; max-width:480px; transform:translateY(40px); transition:transform .3s ease; }
+.modal-overlay.open .modal { transform:translateY(0); }
+.modal-handle { width:40px; height:4px; background:var(--border); border-radius:2px; margin:0 auto 20px; }
+.modal-title { font-family:'Syne',sans-serif; font-size:18px; font-weight:800; margin-bottom:16px; }
+
+.spinner { display:inline-block; width:14px; height:14px; border:2px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin .7s linear infinite; margin-right:6px; vertical-align:middle; }
+@keyframes spin { to{transform:rotate(360deg)} }
+
+.toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%) translateY(80px); background:var(--surface2); border:1px solid var(--border); border-radius:12px; padding:12px 20px; font-size:13px; z-index:300; transition:transform .3s ease; white-space:nowrap; max-width:calc(100vw - 40px); }
+.toast.show { transform:translateX(-50%) translateY(0); }
+.toast.ok { border-color:var(--green); color:var(--green); }
+.toast.err { border-color:var(--red); color:var(--red); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <div class="logo">⚡ My<span>Trips</span></div>
+    <div class="gas-badge" onclick="openGasModal()">
+      ⛽ <span class="price" id="gasBadge">$3.49</span>/gal
+    </div>
+  </div>
+  <div class="subtitle">Accurate trip charges based on real distance</div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('nova',this)">New Trip</div>
+  <div class="tab" onclick="switchTab('historico',this)">History</div>
+  <div class="tab" onclick="switchTab('config',this)">Settings</div>
+</div>
+
+<!-- NEW TRIP -->
+<div class="page active" id="page-nova">
+
+  <div class="card">
+    <div class="card-title">🗺️ Route</div>
+    <div class="route-builder">
+      <div class="route-line"></div>
+      <div class="stop-row">
+        <div class="stop-dot origin"></div>
+        <div class="ac-wrap">
+          <input class="stop-input" id="originInput" type="text" placeholder="📍 Starting point" autocomplete="off"
+            oninput="acInput(this,'acdrop-origin')" onkeydown="acKey(event,'acdrop-origin')" onfocus="acFocus(this,'acdrop-origin')">
+          <div class="ac-dropdown" id="acdrop-origin"></div>
+        </div>
+      </div>
+      <div id="waypoints-container"></div>
+      <div class="stop-row">
+        <div class="stop-dot destination"></div>
+        <div class="ac-wrap">
+          <input class="stop-input" id="destInput" type="text" placeholder="🏁 Destination" autocomplete="off"
+            oninput="acInput(this,'acdrop-dest')" onkeydown="acKey(event,'acdrop-dest')" onfocus="acFocus(this,'acdrop-dest')">
+          <div class="ac-dropdown" id="acdrop-dest"></div>
+        </div>
+      </div>
+    </div>
+    <button class="add-stop-btn" onclick="addWaypoint()">➕ Add stop / waypoint</button>
+  </div>
+
+  <div class="card">
+    <div class="card-title">⚙️ Trip Parameters</div>
+    <div class="grid2">
+      <div class="inp-group">
+        <label>Fuel Economy (MPG)</label>
+        <input class="inp" type="number" id="mpgInput" value="28" min="10" max="60" step="0.5">
+      </div>
+      <div class="inp-group">
+        <label>Gas Price ($/gal)</label>
+        <input class="inp" type="number" id="gasInput" value="3.49" min="2" max="8" step="0.01" oninput="syncGas()">
+      </div>
+    </div>
+    <div style="margin-top:14px;">
+      <label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;font-weight:600;">Profit Margin</label>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;">
+        <div class="slider-val" id="margemVal">30<span>%</span></div>
+        <div style="font-size:11px;color:var(--muted);">on top of fuel cost</div>
+      </div>
+      <input type="range" id="margemSlider" min="0" max="100" value="30"
+        oninput="document.getElementById('margemVal').innerHTML=this.value+'<span>%</span>'">
+    </div>
+  </div>
+
+  <div class="peak-card" id="peakCard">
+    <div class="peak-header">
+      <div class="peak-lbl">
+        <div class="peak-icon">🚦</div>
+        <div>
+          <div class="peak-title">Peak Hour <span id="peakTag"></span></div>
+          <div class="peak-sub" id="peakSub">Tap to charge extra during traffic</div>
+        </div>
+      </div>
+      <button class="toggle" id="peakToggle" onclick="togglePeak()"></button>
+    </div>
+    <div class="peak-details">
+      <div class="peak-mult-row">
+        <div>
+          <div style="font-size:12px;color:var(--muted);">Extra charge on total</div>
+          <div class="peak-mult-val" id="peakMultVal">+25%</div>
+        </div>
+        <div style="text-align:right;font-size:11px;color:var(--muted);">MPG drops<br><span style="color:var(--accent2)">−15% in traffic</span></div>
+      </div>
+      <input type="range" id="peakSlider" min="10" max="80" value="25"
+        oninput="document.getElementById('peakMultVal').textContent='+'+this.value+'%'"
+        style="accent-color:var(--accent2)">
+      <div class="peak-time-grid">
+        <div>
+          <div class="peak-time-lbl">Morning</div>
+          <div style="display:flex;gap:6px;">
+            <input class="inp" type="time" id="pkMS" value="07:00" style="font-size:12px;padding:7px 8px;">
+            <input class="inp" type="time" id="pkME" value="09:00" style="font-size:12px;padding:7px 8px;">
+          </div>
+        </div>
+        <div>
+          <div class="peak-time-lbl">Evening</div>
+          <div style="display:flex;gap:6px;">
+            <input class="inp" type="time" id="pkES" value="17:00" style="font-size:12px;padding:7px 8px;">
+            <input class="inp" type="time" id="pkEE" value="19:30" style="font-size:12px;padding:7px 8px;">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn-calc" id="calcBtn" onclick="calculate()" disabled>Calculate Trip</button>
+
+  <div class="result-card" id="resultCard">
+    <div class="result-main">
+      <div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.8px;">Total to charge</div>
+        <div class="result-price" id="rPrice"></div>
+      </div>
+      <div class="result-meta">
+        <div class="result-dist" id="rDist"></div>
+        <div class="result-time" id="rTime"></div>
+      </div>
+    </div>
+    <div class="route-stops" id="rRoute"></div>
+    <div class="result-breakdown">
+      <div class="bd-item">Fuel cost<strong id="rFuel"></strong></div>
+      <div class="bd-item">Margin<strong id="rMargin"></strong></div>
+      <div class="bd-item">Cost/mile<strong id="rPerMile"></strong></div>
+      <div class="bd-item">Gallons<strong id="rGallons"></strong></div>
+    </div>
+    <div class="peak-result-line" id="rPeakLine" style="display:none;">
+      <span>🚦 Peak extra</span><strong id="rPeakExtra"></strong>
+    </div>
+    <div class="result-actions">
+      <button class="btn-act" onclick="saveTrip()">💾 Save</button>
+      <button class="btn-act green" onclick="shareTrip()">📤 Share</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- HISTORY -->
+<div class="page" id="page-historico">
+  <div class="history-header">
+    <div class="history-title">History</div>
+    <button onclick="clearHistory()" style="background:none;border:1px solid var(--border);border-radius:8px;padding:6px 12px;color:var(--muted);font-size:12px;cursor:pointer;">Clear</button>
+  </div>
+  <div class="stats-grid" id="statsGrid"></div>
+  <div id="historyList"></div>
+</div>
+
+<!-- SETTINGS -->
+<div class="page" id="page-config">
+  <div class="cfg-section">
+    <div class="cfg-title">Vehicle Presets</div>
+    <div class="preset-grid">
+      <button class="preset-btn sel" onclick="setPreset(this,28)"><div class="preset-name">🚗 Sedan/Hatch</div><div class="preset-desc">~28 MPG</div></button>
+      <button class="preset-btn" onclick="setPreset(this,22)"><div class="preset-name">🚙 SUV</div><div class="preset-desc">~22 MPG</div></button>
+      <button class="preset-btn" onclick="setPreset(this,50)"><div class="preset-name">🏍️ Motorcycle</div><div class="preset-desc">~50 MPG</div></button>
+      <button class="preset-btn" onclick="setPreset(this,18)"><div class="preset-name">🚐 Van/Truck</div><div class="preset-desc">~18 MPG</div></button>
+    </div>
+  </div>
+  <div class="cfg-section">
+    <div class="cfg-title">About</div>
+    <div class="card" style="margin:0;font-size:13px;color:var(--muted);line-height:1.8;">
+      <strong style="color:var(--text);">MyTrips v2.0</strong><br>
+      Autocomplete powered by Geoapify. Distance via Haversine × 1.3 road factor.<br>
+      <span style="color:var(--accent);">Formula:</span> (miles ÷ MPG) × $/gal × (1 + margin%) × (1 + peak%)
+    </div>
+  </div>
+</div>
+
+<!-- GAS MODAL -->
+<div class="modal-overlay" id="gasModal" onclick="if(event.target===this)closeGasModal()">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">⛽ Gas Price</div>
+    <div class="inp-group" style="margin-bottom:16px;">
+      <label>Price per gallon ($)</label>
+      <input class="inp" type="number" id="gasModalInput" value="3.49" min="2" max="8" step="0.01"
+        style="font-size:24px;font-family:'Syne',sans-serif;font-weight:700;text-align:center;">
+    </div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:16px;text-align:center;">Check GasBuddy for today's local price</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
+      <button class="btn-act" onclick="document.getElementById('gasModalInput').value='3.29'">Regular<br><small>~$3.29</small></button>
+      <button class="btn-act" onclick="document.getElementById('gasModalInput').value='3.79'">Premium<br><small>~$3.79</small></button>
+    </div>
+    <button class="btn-calc" onclick="saveGas()">Confirm</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const GEOKEY = 'baae5f2df5aa411c91d7b28cd7a6aba3';
+let gasPrice = 3.49;
+let peakOn = false;
+let waypoints = [];
+let lastResult = null;
+let trips = [];
+
+// ── INIT ──────────────────────────────────────────────────────
+function init() {
+  try { trips = JSON.parse(localStorage.getItem('mytrips') || '[]'); } catch(e) { trips = []; }
+  const g = localStorage.getItem('mytrips_gas');
+  if (g) { gasPrice = parseFloat(g); refreshGasUI(); }
+  checkPeakNow();
+  renderHistory();
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.ac-wrap')) closeAllDropdowns();
+  });
+}
+
+// ── TABS ──────────────────────────────────────────────────────
+function switchTab(id, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('page-' + id).classList.add('active');
+  if (id === 'historico') renderHistory();
+}
+
+// ── GAS ───────────────────────────────────────────────────────
+function refreshGasUI() {
+  document.getElementById('gasBadge').textContent = '$' + gasPrice.toFixed(2);
+  document.getElementById('gasInput').value = gasPrice;
+  document.getElementById('gasModalInput').value = gasPrice;
+}
+function syncGas() {
+  gasPrice = parseFloat(document.getElementById('gasInput').value) || 3.49;
+  document.getElementById('gasBadge').textContent = '$' + gasPrice.toFixed(2);
+  document.getElementById('gasModalInput').value = gasPrice;
+  localStorage.setItem('mytrips_gas', gasPrice);
+}
+function openGasModal() { document.getElementById('gasModal').classList.add('open'); }
+function closeGasModal() { document.getElementById('gasModal').classList.remove('open'); }
+function saveGas() {
+  const v = parseFloat(document.getElementById('gasModalInput').value);
+  if (v > 0) { gasPrice = v; localStorage.setItem('mytrips_gas', v); refreshGasUI(); toast('✅ Gas price updated!', 'ok'); }
+  closeGasModal();
+}
+
+// ── PEAK ──────────────────────────────────────────────────────
+function t2m(t) { const [h,m] = t.split(':').map(Number); return h*60+m; }
+function checkPeakNow() {
+  const now = new Date(), cur = now.getHours()*60 + now.getMinutes();
+  const isPeak = (cur >= t2m(document.getElementById('pkMS').value) && cur <= t2m(document.getElementById('pkME').value)) ||
+                 (cur >= t2m(document.getElementById('pkES').value) && cur <= t2m(document.getElementById('pkEE').value));
+  const tag = document.getElementById('peakTag'), sub = document.getElementById('peakSub');
+  if (isPeak) {
+    tag.innerHTML = '<span class="peak-badge">🔴 NOW</span>';
+    sub.textContent = 'Peak detected! Activate to charge extra.';
+    sub.className = 'peak-sub now';
+  } else {
+    tag.innerHTML = '';
+    sub.textContent = 'Off-peak (' + now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0') + ')';
+    sub.className = 'peak-sub';
+  }
+}
+function togglePeak() {
+  peakOn = !peakOn;
+  document.getElementById('peakToggle').classList.toggle('on', peakOn);
+  document.getElementById('peakCard').classList.toggle('on', peakOn);
+}
+
+// ── WAYPOINTS ─────────────────────────────────────────────────
+function addWaypoint() {
+  const id = 'wp_' + Date.now(), dropId = 'drop_' + id;
+  waypoints.push(id);
+  const row = document.createElement('div');
+  row.className = 'stop-row'; row.id = 'row_' + id;
+  row.innerHTML =
+    '<div class="stop-dot waypoint"></div>' +
+    '<div class="ac-wrap">' +
+      '<input class="stop-input" id="' + id + '" type="text" placeholder="🔄 Stop / Waypoint" autocomplete="off" ' +
+        'oninput="acInput(this,\'' + dropId + '\')" onkeydown="acKey(event,\'' + dropId + '\')" onfocus="acFocus(this,\'' + dropId + '\')">' +
+      '<button class="remove-btn" onclick="removeWaypoint(\'' + id + '\')">✕</button>' +
+      '<div class="ac-dropdown" id="' + dropId + '"></div>' +
+    '</div>';
+  document.getElementById('waypoints-container').appendChild(row);
+  checkCalcBtn();
+}
+function removeWaypoint(id) {
+  document.getElementById('row_' + id)?.remove();
+  waypoints = waypoints.filter(w => w !== id);
+  checkCalcBtn();
+}
+function checkCalcBtn() {
+  const ok = document.getElementById('originInput').value.trim() && document.getElementById('destInput').value.trim();
+  document.getElementById('calcBtn').disabled = !ok;
+}
+
+// ── AUTOCOMPLETE ──────────────────────────────────────────────
+const acTimers = {}, acCache = {};
+
+async function fetchAC(query) {
+  const key = query.toLowerCase().trim();
+  if (acCache[key]) return acCache[key];
+  const url = 'https://api.geoapify.com/v1/geocode/autocomplete' +
+    '?text=' + encodeURIComponent(query) +
+    '&apiKey=' + GEOKEY +
+    '&limit=5&lang=en&filter=countrycode:us&bias=proximity:-76.6413,39.0458';
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    const out = (data.features || []).map(function(f) {
+      const p = f.properties;
+      const main = p.address_line1 || p.name || p.street || p.formatted || '';
+      const sub  = p.address_line2 || [p.city || p.county, p.state_code].filter(Boolean).join(', ') || '';
+      const full = p.formatted || main;
+      const cats = (p.categories || []).join(' ');
+      const icon = cats.includes('catering') ? '🍽️' :
+                   cats.includes('fuel')      ? '⛽' :
+                   cats.includes('education') ? '🎓' :
+                   cats.includes('healthcare')? '🏥' :
+                   cats.includes('shopping')  ? '🛒' :
+                   cats.includes('accommodation') ? '🏨' :
+                   p.result_type === 'building' ? '🏠' :
+                   p.result_type === 'street'   ? '🛣️' : '📍';
+      return { main: main, sub: sub, full: full, icon: icon,
+               lat: f.geometry.coordinates[1], lon: f.geometry.coordinates[0] };
+    });
+    acCache[key] = out;
+    return out;
+  } catch(e) {
+    console.error('Autocomplete error:', e);
+    return [];
+  }
+}
+
+function acFocus(input, dropId) {
+  if (input.value.trim().length >= 3) acInput(input, dropId);
+}
+
+function acInput(input, dropId) {
+  checkCalcBtn();
+  input._coords = null;
+  const val = input.value.trim();
+  if (val.length < 3) { closeDrop(dropId); return; }
+  clearTimeout(acTimers[dropId]);
+  const d = document.getElementById(dropId);
+  if (d) {
+    d.innerHTML = '<div class="ac-msg"><span class="spinner"></span>Searching...</div>';
+    d.classList.add('open');
+  }
+  acTimers[dropId] = setTimeout(async function() {
+    const results = await fetchAC(val);
+    renderDrop(input, dropId, results);
+  }, 350);
+}
+
+function renderDrop(input, dropId, results) {
+  const d = document.getElementById(dropId);
+  if (!d) return;
+  if (!results.length) {
+    d.innerHTML = '<div class="ac-msg">No results found</div>';
+    d.classList.add('open');
+    return;
+  }
+  let html = '';
+  results.forEach(function(r, i) {
+    html += '<div class="ac-item" onmousedown="pickAC(event,\'' + input.id + '\',\'' + dropId + '\',' + i + ')">' +
+              '<div class="ac-icon">' + r.icon + '</div>' +
+              '<div class="ac-texts">' +
+                '<div class="ac-main">' + escHtml(r.main) + '</div>' +
+                (r.sub ? '<div class="ac-sub">' + escHtml(r.sub) + '</div>' : '') +
+              '</div></div>';
+  });
+  d.innerHTML = html;
+  d._results = results;
+  d._idx = -1;
+  d.classList.add('open');
+}
+
+function escHtml(s) {
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function pickAC(e, inputId, dropId, idx) {
+  e.preventDefault();
+  const d = document.getElementById(dropId);
+  const item = (d && d._results) ? d._results[idx] : null;
+  if (!item) return;
+  const inp = document.getElementById(inputId);
+  inp.value = item.full;
+  inp._coords = { lat: item.lat, lon: item.lon };
+  closeDrop(dropId);
+  checkCalcBtn();
+}
+
+function acKey(e, dropId) {
+  const d = document.getElementById(dropId);
+  if (!d || !d.classList.contains('open')) return;
+  const items = d.querySelectorAll('.ac-item');
+  if (!items.length) return;
+  if (e.key === 'ArrowDown') { e.preventDefault(); d._idx = Math.min((d._idx == null ? -1 : d._idx) + 1, items.length - 1); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); d._idx = Math.max((d._idx == null ? 0 : d._idx) - 1, 0); }
+  else if (e.key === 'Enter' && d._idx >= 0) { e.preventDefault(); items[d._idx].dispatchEvent(new MouseEvent('mousedown')); return; }
+  else if (e.key === 'Escape') { closeDrop(dropId); return; }
+  else return;
+  items.forEach(function(el, i) { el.classList.toggle('sel', i === d._idx); });
+}
+
+function closeDrop(dropId) {
+  const d = document.getElementById(dropId);
+  if (d) { d.classList.remove('open'); d.innerHTML = ''; }
+}
+function closeAllDropdowns() {
+  document.querySelectorAll('.ac-dropdown').forEach(function(d) { d.classList.remove('open'); d.innerHTML = ''; });
+}
+
+// ── GEOCODE fallback ──────────────────────────────────────────
+async function geocode(address) {
+  const url = 'https://api.geoapify.com/v1/geocode/search' +
+    '?text=' + encodeURIComponent(address) +
+    '&apiKey=' + GEOKEY +
+    '&limit=1&lang=en&filter=countrycode:us';
+  try {
+    const res = await fetch(url);
+    const data = await res.json();
+    if (data.features && data.features.length) {
+      const f = data.features[0];
+      return { lat: f.geometry.coordinates[1], lon: f.geometry.coordinates[0] };
+    }
+  } catch(e) {}
+  return null;
+}
+
+// ── HAVERSINE (miles) ─────────────────────────────────────────
+function haversine(lat1, lon1, lat2, lon2) {
+  const R = 3958.8;
+  const dLat = (lat2-lat1)*Math.PI/180, dLon = (lon2-lon1)*Math.PI/180;
+  const a = Math.sin(dLat/2)*Math.sin(dLat/2) +
+            Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+// ── CALCULATE ─────────────────────────────────────────────────
+async function calculate() {
+  const btn = document.getElementById('calcBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Calculating...';
+
+  const stopDefs = [
+    { id: 'originInput', text: document.getElementById('originInput').value.trim() }
+  ];
+  waypoints.forEach(function(wid) {
+    const el = document.getElementById(wid);
+    if (el && el.value.trim()) stopDefs.push({ id: wid, text: el.value.trim() });
+  });
+  stopDefs.push({ id: 'destInput', text: document.getElementById('destInput').value.trim() });
+
+  try {
+    const coords = [];
+    for (let i = 0; i < stopDefs.length; i++) {
+      const s = stopDefs[i];
+      const el = document.getElementById(s.id);
+      if (el && el._coords) {
+        coords.push(el._coords);
+      } else {
+        const geo = await geocode(s.text);
+        if (!geo) { toast('❌ Not found: "' + s.text.substring(0,30) + '"', 'err'); return; }
+        coords.push(geo);
+      }
+    }
+
+    let totalMiles = 0;
+    for (let i = 0; i < coords.length - 1; i++) {
+      totalMiles += haversine(coords[i].lat, coords[i].lon, coords[i+1].lat, coords[i+1].lon) * 1.3;
+    }
+
+    const mpg      = parseFloat(document.getElementById('mpgInput').value) || 28;
+    const margin   = parseInt(document.getElementById('margemSlider').value) / 100;
+    const peakPct  = peakOn ? parseInt(document.getElementById('peakSlider').value) / 100 : 0;
+    const mpgEff   = mpg * (peakOn ? 0.85 : 1.0);
+
+    const gallons    = totalMiles / mpgEff;
+    const fuelCost   = gallons * gasPrice;
+    const withMargin = fuelCost * (1 + margin);
+    const peakExtra  = withMargin * peakPct;
+    const total      = withMargin + peakExtra;
+
+    const avgSpeed = peakOn ? 17 : 30;
+    const mins = Math.round((totalMiles / avgSpeed) * 60);
+    const timeStr = mins >= 60 ? Math.floor(mins/60) + 'h ' + (mins%60) + 'min' : mins + ' min';
+
+    lastResult = {
+      total: total, miles: totalMiles, gallons: gallons, fuelCost: fuelCost,
+      margin: margin*100, peakOn: peakOn, peakMult: peakPct*100, peakExtra: peakExtra,
+      mins: mins, timeStr: timeStr, stops: stopDefs.map(function(s){ return s.text; }),
+      mpg: mpg, gasPrice: gasPrice, date: new Date().toISOString()
+    };
+
+    const fm = function(v) { return '$' + v.toFixed(2); };
+    document.getElementById('rPrice').innerHTML = fm(total).replace('$','<sup>$</sup>');
+    document.getElementById('rDist').textContent = totalMiles.toFixed(1) + ' mi';
+    document.getElementById('rTime').textContent = '~' + timeStr + (peakOn ? ' 🚦' : '');
+    document.getElementById('rFuel').textContent = fm(fuelCost);
+    document.getElementById('rMargin').textContent = fm(withMargin - fuelCost);
+    document.getElementById('rPerMile').textContent = fm(total / totalMiles) + '/mi';
+    document.getElementById('rGallons').textContent = gallons.toFixed(2) + ' gal';
+
+    const peakLine = document.getElementById('rPeakLine');
+    if (peakOn) {
+      peakLine.style.display = 'flex';
+      document.getElementById('rPeakExtra').textContent = '+' + fm(peakExtra);
+    } else {
+      peakLine.style.display = 'none';
+    }
+
+    let routeHtml = '';
+    stopDefs.forEach(function(s, i) {
+      const color = i === 0 ? 'var(--green)' : i === stopDefs.length-1 ? 'var(--red)' : 'var(--accent)';
+      const label = s.text.length > 40 ? s.text.slice(0,40) + '…' : s.text;
+      routeHtml += '<div class="route-stop-item"><div class="dot" style="background:' + color + '"></div>' + escHtml(label) + '</div>';
+    });
+    document.getElementById('rRoute').innerHTML = routeHtml;
+
+    document.getElementById('resultCard').classList.add('show');
+    document.getElementById('resultCard').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+  } catch(e) {
+    console.error(e);
+    toast('❌ Error calculating. Check addresses.', 'err');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Calculate Trip';
+    checkCalcBtn();
+  }
+}
+
+// ── SAVE / SHARE ──────────────────────────────────────────────
+function saveTrip() {
+  if (!lastResult) return;
+  trips.unshift(lastResult);
+  if (trips.length > 100) trips = trips.slice(0, 100);
+  localStorage.setItem('mytrips', JSON.stringify(trips));
+  toast('✅ Trip saved!', 'ok');
+}
+function shareTrip() {
+  if (!lastResult) return;
+  const r = lastResult;
+  const fm = function(v){ return '$' + v.toFixed(2); };
+  const pk = r.peakOn ? '\n🚦 Peak extra: +' + fm(r.peakExtra) : '';
+  const txt = '🚗 *Trip*\n📍 ' + r.stops[0] + '\n🏁 ' + r.stops[r.stops.length-1] +
+    '\n\n📏 ' + r.miles.toFixed(1) + ' mi  ⏱️ ~' + r.timeStr +
+    '\n⛽ Fuel: ' + fm(r.fuelCost) + pk +
+    '\n\n💰 *Total: ' + fm(r.total) + '*';
+  if (navigator.share) navigator.share({ text: txt });
+  else navigator.clipboard.writeText(txt).then(function(){ toast('📋 Copied!', 'ok'); });
+}
+
+// ── HISTORY ───────────────────────────────────────────────────
+function renderHistory() {
+  const list = document.getElementById('historyList');
+  const stats = document.getElementById('statsGrid');
+  if (!trips.length) {
+    stats.innerHTML = '';
+    list.innerHTML = '<div class="empty-state"><div class="empty-icon">🛣️</div>No trips saved yet.<br>Make your first trip!</div>';
+    return;
+  }
+  const totMi = trips.reduce(function(s,c){ return s+(c.miles||0); }, 0);
+  const totEarned = trips.reduce(function(s,c){ return s+c.total; }, 0);
+  stats.innerHTML =
+    '<div class="stat-card"><div class="stat-val">' + trips.length + '</div><div class="stat-label">Trips</div></div>' +
+    '<div class="stat-card"><div class="stat-val">' + totMi.toFixed(0) + '</div><div class="stat-label">Miles</div></div>' +
+    '<div class="stat-card"><div class="stat-val">$' + totEarned.toFixed(0) + '</div><div class="stat-label">Earned</div></div>';
+  const fm = function(v){ return '$' + v.toFixed(2); };
+  list.innerHTML = trips.map(function(c) {
+    const d = new Date(c.date);
+    const ds = d.toLocaleDateString('en-US',{month:'2-digit',day:'2-digit'});
+    const ts = d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+    const from = (c.stops[0]||'').split(',')[0];
+    const to   = (c.stops[c.stops.length-1]||'').split(',')[0];
+    const wayStr = c.stops.length > 2 ? ' +' + (c.stops.length-2) + ' stop(s)' : '';
+    const pk = c.peakOn ? '<span class="chip" style="color:var(--accent2)">🚦 +' + Math.round(c.peakMult) + '%</span>' : '';
+    return '<div class="history-item">' +
+      '<div class="h-top"><div class="h-route">' + escHtml(from) + ' → ' + escHtml(to) + wayStr + '</div>' +
+      '<div class="h-price">' + fm(c.total) + '</div></div>' +
+      '<div class="h-meta">' +
+        '<span class="chip">📏 ' + (c.miles||0).toFixed(1) + ' mi</span>' +
+        '<span class="chip">⏱️ ~' + c.timeStr + '</span>' +
+        pk +
+        '<span class="chip">📅 ' + ds + ' ' + ts + '</span>' +
+      '</div></div>';
+  }).join('');
+}
+function clearHistory() {
+  if (!confirm('Clear all trip history?')) return;
+  trips = []; localStorage.removeItem('mytrips'); renderHistory();
+  toast('🗑️ History cleared', 'ok');
+}
+
+// ── SETTINGS ──────────────────────────────────────────────────
+function setPreset(btn, mpg) {
+  document.querySelectorAll('.preset-btn').forEach(function(b){ b.classList.remove('sel'); });
+  btn.classList.add('sel');
+  document.getElementById('mpgInput').value = mpg;
+}
+
+// ── TOAST ─────────────────────────────────────────────────────
+function toast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + (type||'');
+  setTimeout(function(){ t.classList.remove('show'); }, 2800);
+}
+
+function escHtml(s) {
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+init();
+</script>
+</body>
+</html>
